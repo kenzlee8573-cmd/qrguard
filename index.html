@@ -77,7 +77,9 @@
     background: var(--brand); cursor: pointer;
   }
   button.ghost { background: var(--panel); border: 1px solid var(--line); color: var(--text); width: 100%; }
-  button.small { font-size: 14px; padding: 11px 10px; font-weight: 600; color: var(--muted); }
+  button.small { font-size: 13.5px; padding: 11px 10px; font-weight: 600; color: var(--muted); }
+  .exLabel { color: var(--muted); font-size: 12.5px; margin: 16px 0 8px; }
+  .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
   /* 결과 */
   #result { animation: rise .35s ease both; }
@@ -87,7 +89,6 @@
     margin-top: 4px; border-radius: 22px; padding: 24px 18px 20px; text-align: center;
     position: relative; overflow: hidden;
   }
-  .card.info { background: linear-gradient(160deg, #3c4658, #2a3242); }
   .card.safe { background: linear-gradient(160deg, #21a95c, #157a41); }
   .card.caution { background: linear-gradient(160deg, #f0a12a, #c06f0c); }
   .card.danger { background: linear-gradient(160deg, #ee4a3f, #b62219); }
@@ -189,9 +190,12 @@
     <input id="linkInput" placeholder="or paste a link here" autocomplete="off">
     <button id="checkBtn">Check</button>
   </div>
-  <div class="row">
-    <button class="ghost small" id="realBtn">Try a real link</button>
-    <button class="ghost small" id="fakeBtn">Try a fake link</button>
+  <p class="exLabel">or try an example link</p>
+  <div class="examples">
+    <button class="ghost small" id="ex1">naver.com</button>
+    <button class="ghost small" id="ex2">youtube.com</button>
+    <button class="ghost small" id="ex3">fake PayPal login</button>
+    <button class="ghost small" id="ex4">fake bank (IP address)</button>
   </div>
   </div>
 
@@ -199,10 +203,8 @@
     <div class="card" id="card">
       <div class="mark" id="mark">✓</div>
       <div class="verdict" id="verdict">SAFE</div>
-      <div id="riskRow">
-        <div class="risk">Phishing probability <b id="riskText">0%</b></div>
-        <div class="bar"><span id="riskBar"></span></div>
-      </div>
+      <div class="risk">Phishing probability <b id="riskText">0%</b></div>
+      <div class="bar"><span id="riskBar"></span></div>
       <div class="link" id="linkText"></div>
     </div>
 
@@ -211,7 +213,7 @@
       <ul class="why" id="why"></ul>
     </div>
 
-    <details class="panel" id="featPanel">
+    <details class="panel">
       <summary>What our code counted</summary>
       <table class="feat" id="featTable"></table>
     </details>
@@ -447,18 +449,7 @@ var featLabels = {
   no_https: "No https", length: "Site name length", dots: "Dots in site name", bad_ending: "Suspicious ending"
 };
 
-function isLink(text) {
-  // QR 안에 링크가 아니라 그냥 글자가 들어 있을 수도 있다
-  if (text.indexOf("http") === 0) { return true; }
-  if (text.indexOf(".") > 0 && text.indexOf(" ") < 0) { return true; }
-  return false;
-}
-
 function showResult(link) {
-  if (!isLink(link)) {
-    showPlainText(link);
-    return;
-  }
   var answer = judge(link);
 
   document.getElementById("result").classList.remove("hidden");
@@ -501,21 +492,6 @@ function showResult(link) {
   window.scrollTo({ top: 0 });
 }
 
-function showPlainText(text) {
-  // 링크가 아니면 판정하지 않고 내용만 보여준다
-  document.getElementById("result").classList.remove("hidden");
-  document.getElementById("scanView").classList.add("hidden");
-  document.getElementById("card").className = "card info";
-  document.getElementById("mark").textContent = "i";
-  document.getElementById("verdict").textContent = "NOT A LINK";
-  document.getElementById("riskRow").classList.add("hidden");
-  document.getElementById("featPanel").classList.add("hidden");
-  document.getElementById("linkText").textContent = text;
-  document.getElementById("why").innerHTML = "<li>This QR code contains text, not a website link.</li>";
-  document.getElementById("featTable").innerHTML = "";
-  window.scrollTo({ top: 0 });
-}
-
 // ===== 5. 카메라로 QR 읽기 =====
 var video = document.getElementById("video");
 var frame = document.getElementById("frame");
@@ -553,21 +529,22 @@ function scanOnce() {
 
   var found = jsQR(picture.data, picture.width, picture.height);
   if (found) {
-    scanning = false;             // 같은 코드를 계속 읽지 않도록 잠깐 멈춘다
+    scanning = false;             // 같은 코드를 계속 읽지 않도록 멈춘다
     hint.textContent = "Found a QR code";
     showResult(found.data);
   }
 }
 
 // ===== 6. 버튼 =====
-// 카메라가 없는 컴퓨터에서도 바로 보여줄 수 있는 예시 버튼
-document.getElementById("realBtn").onclick = function () {
-  showResult("https://www.naver.com");
-};
+// 예시 버튼: 링크를 입력창에 넣어만 준다. 결과를 보려면 Check를 누른다
+function useExample(link) {
+  document.getElementById("linkInput").value = link;
+}
 
-document.getElementById("fakeBtn").onclick = function () {
-  showResult("http://paypal-secure-login.account-verify.example/signin");
-};
+document.getElementById("ex1").onclick = function () { useExample("https://www.naver.com"); };
+document.getElementById("ex2").onclick = function () { useExample("https://www.youtube.com/watch?v=abc123"); };
+document.getElementById("ex3").onclick = function () { useExample("http://paypal-secure-login.account-verify.example/signin"); };
+document.getElementById("ex4").onclick = function () { useExample("http://192.0.2.44/bank/login"); };
 
 document.getElementById("checkBtn").onclick = function () {
   var link = document.getElementById("linkInput").value;
