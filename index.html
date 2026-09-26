@@ -172,7 +172,7 @@
         <li>We read the link <b>without opening it</b></li>
         <li>You get <b>SAFE, CAUTION or DANGER</b> and the reason</li>
       </ol>
-      <button id="startBtn">Start scanning</button>
+      <button onclick="startScanning()">Start scanning</button>
     </div>
   </div>
 
@@ -188,14 +188,14 @@
 
   <div class="row">
     <input id="linkInput" placeholder="or paste a link here" autocomplete="off">
-    <button id="checkBtn">Check</button>
+    <button onclick="checkTypedLink()">Check</button>
   </div>
   <p class="exLabel">or try an example link</p>
   <div class="examples">
-    <button class="ghost small" id="ex1">naver.com</button>
-    <button class="ghost small" id="ex2">youtube.com</button>
-    <button class="ghost small" id="ex3">fake PayPal login</button>
-    <button class="ghost small" id="ex4">fake bank (IP address)</button>
+    <button class="ghost small" onclick="useExample('https://www.naver.com')">naver.com</button>
+    <button class="ghost small" onclick="useExample('https://www.youtube.com/watch?v=abc123')">youtube.com</button>
+    <button class="ghost small" onclick="useExample('http://paypal-secure-login.account-verify.example/signin')">fake PayPal login</button>
+    <button class="ghost small" onclick="useExample('http://192.0.2.44/bank/login')">fake bank (IP address)</button>
   </div>
   </div>
 
@@ -218,7 +218,7 @@
       <table class="feat" id="featTable"></table>
     </details>
 
-    <div class="row"><button class="ghost" id="againBtn">Scan another code</button></div>
+    <div class="row"><button class="ghost" onclick="scanAgain()">Scan another code</button></div>
   </div>
 
   <footer>
@@ -444,10 +444,24 @@ function judge(link) {
 }
 
 // ===== 4. 화면에 보여주기 =====
-var featLabels = {
-  ip: "Number address (IP)", at: "'@' in the link", dash: "Hyphens", words: "Scam words",
-  no_https: "No https", length: "Site name length", dots: "Dots in site name", bad_ending: "Suspicious ending"
-};
+// 표에 보여줄 8개 항목 [이름, 값]
+function featRows(f) {
+  return [
+    ["Number address (IP)", f.ip],
+    ["'@' in the link", f.at],
+    ["Hyphens", f.dash],
+    ["Scam words", f.words],
+    ["No https", f.no_https],
+    ["Site name length", f.length],
+    ["Dots in site name", f.dots],
+    ["Suspicious ending", f.bad_ending]
+  ];
+}
+
+function setText(id, text) {
+  // 화면의 어떤 자리에 글자를 넣는 도우미
+  document.getElementById(id).textContent = text;
+}
 
 function showResult(link) {
   var answer = judge(link);
@@ -475,15 +489,18 @@ function showResult(link) {
   }
 
   var percent = Math.round(answer.risk * 100);
-  document.getElementById("riskText").textContent = percent + "%";
+  setText("riskText", percent + "%");
   document.getElementById("riskBar").style.width = percent + "%";
 
+  var rows = featRows(answer.f);
   var table = document.getElementById("featTable");
   table.innerHTML = "";
-  for (var key in featLabels) {
+  for (var k = 0; k < rows.length; k++) {
+    var name = rows[k][0];
+    var value = rows[k][1];
     var tr = document.createElement("tr");
-    if (answer.f[key] > 0) { tr.className = "hit"; }   // 0이 아닌 값은 강조해서 보여준다
-    tr.innerHTML = "<td>" + featLabels[key] + "</td><td>" + answer.f[key] + "</td>";
+    if (value > 0) { tr.className = "hit"; }    // 0이 아닌 값은 빨갛게 보여준다
+    tr.innerHTML = "<td>" + name + "</td><td>" + value + "</td>";
     table.appendChild(tr);
   }
 
@@ -499,15 +516,17 @@ var hint = document.getElementById("hint");
 var scanning = true;
 
 function startCamera() {
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-    .then(cameraReady)
-    .catch(cameraFailed);
+  // 카메라를 켜달라고 부탁한다. 켜지는 데 시간이 걸려서 결과를 나중에 받는다
+  var camera = navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+  camera.then(cameraReady).catch(cameraFailed);   // 켜지면 cameraReady, 실패하면 cameraFailed
 }
 
 function cameraReady(stream) {
   video.srcObject = stream;
   video.play();
   hint.textContent = "Point at a QR code";
+  frame.width = 480;            // 검사할 그림 크기 (한 번만 정해둔다)
+  frame.height = 640;
   setInterval(scanOnce, 300);   // 0.3초마다 한 번씩 화면을 확인한다
 }
 
@@ -521,8 +540,6 @@ function scanOnce() {
   if (video.videoWidth === 0) { return; }
 
   // 지금 보이는 화면을 그림으로 저장한 뒤, 그 그림에서 QR을 찾는다
-  frame.width = video.videoWidth;
-  frame.height = video.videoHeight;
   var pen = frame.getContext("2d");
   pen.drawImage(video, 0, 0, frame.width, frame.height);
   var picture = pen.getImageData(0, 0, frame.width, frame.height);
@@ -535,36 +552,31 @@ function scanOnce() {
   }
 }
 
-// ===== 6. 버튼 =====
-// 예시 버튼: 링크를 입력창에 넣어만 준다. 결과를 보려면 Check를 누른다
+// ===== 6. 버튼이 부르는 함수들 (버튼은 HTML에 onclick으로 연결해 두었다) =====
 function useExample(link) {
+  // 예시 링크를 입력창에 넣어만 준다. 결과는 Check를 눌러야 나온다
   document.getElementById("linkInput").value = link;
 }
 
-document.getElementById("ex1").onclick = function () { useExample("https://www.naver.com"); };
-document.getElementById("ex2").onclick = function () { useExample("https://www.youtube.com/watch?v=abc123"); };
-document.getElementById("ex3").onclick = function () { useExample("http://paypal-secure-login.account-verify.example/signin"); };
-document.getElementById("ex4").onclick = function () { useExample("http://192.0.2.44/bank/login"); };
-
-document.getElementById("checkBtn").onclick = function () {
+function checkTypedLink() {
   var link = document.getElementById("linkInput").value;
   if (link.length > 0) { showResult(link); }
-};
+}
 
-document.getElementById("againBtn").onclick = function () {
+function scanAgain() {
   scanning = true;
   hint.textContent = "Point at a QR code";
   document.getElementById("result").classList.add("hidden");
   document.getElementById("scanView").classList.remove("hidden");
   window.scrollTo({ top: 0 });
-};
+}
 
-// 홈 화면에서 버튼을 누르면 카메라를 켠다 (아이폰은 버튼을 눌러야 카메라가 켜진다)
-document.getElementById("startBtn").onclick = function () {
+function startScanning() {
+  // 홈 화면을 숨기고 카메라를 켠다 (아이폰은 버튼을 눌러야 카메라가 켜진다)
   document.getElementById("homeView").classList.add("hidden");
   document.getElementById("scanView").classList.remove("hidden");
   startCamera();
-};
+}
 
 </script>
 </body>
