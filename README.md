@@ -2,48 +2,22 @@
 
 Code Monster 2026 · AI / Machine Learning · Team of 2
 
-A web page that checks whether a QR code's link looks dangerous **before you open it**,
-and shows the reason. It runs inside the browser, so there is no server and it works offline.
+A web page that checks whether a QR code's link looks dangerous **before you open it**, and
+shows the reason why. It runs inside the browser, so there is no server.
 
 Try it: https://kenzlee8573-cmd.github.io/qrguard/
 
-## Files
+## The four files
 
-| File | What it is | Who wrote it |
+| File | What it does | Who wrote it |
 |---|---|---|
-| `index.html` | The whole app — screen, 8 features, tree, verdict | us |
-| `train_export.py` | Trains the tree and prints it out as JavaScript | us |
-| `tree.js` | What `train_export.py` prints. We pasted it into `index.html` | generated |
+| `index.html` | The app. Reads the QR code, counts 8 things, gives the verdict | us |
+| `train_export.py` | Trains the decision tree and prints it out as JavaScript | us |
 | `jsQR.js` | Finds the QR pattern in a camera picture | **not us** |
+| `README.md` | This file | us |
 
-`jsQR.js` is an open-source library: https://github.com/cozmo/jsQR (Apache 2.0).
-We use it as it is and did not change it.
-
-## How to run
-
-**The app**
-
-```
-python -m http.server 8000
-```
-Open `http://localhost:8000`. The camera only works on https or localhost — that is a
-browser rule, which is why we host it on GitHub Pages. Without a camera you can still
-paste a link and press Check.
-
-**Training**
-
-```
-pip install pandas scikit-learn
-python train_export.py
-```
-
-It prints the accuracy and writes `tree.js`. Put these three files in a `data/` folder first:
-
-| Save as | Get it from |
-|---|---|
-| `data/phishing_urls.csv` | PhishTank — https://phishtank.org/ |
-| `data/benign_urls.csv` | https://github.com/ebubekirbbr/pdd/blob/master/input/Benign_list_big_final.csv |
-| `data/top10k_domains.txt` | https://github.com/zer0h/top-1000000-domains |
+`jsQR.js` is an open-source library — https://github.com/cozmo/jsQR (Apache 2.0).
+We use it as it is and changed nothing in it.
 
 ## How it works
 
@@ -61,54 +35,61 @@ We picked these eight ourselves.
 | 7 | Dots in the site name | 2 | 2 |
 | 8 | Bad ending (.xyz, .top …) | 0 | 1 |
 
-`get_features()` in Python and `getFeatures()` in JavaScript count the same eight things
-in the same order.
-
-**2. A decision tree scores it.** scikit-learn, `max_depth=5`, trained on 24,000 links and
-tested on 6,000 it had never seen.
+**2. A decision tree scores the link.** scikit-learn, `max_depth=5`, trained on 24,000 links
+and tested on 6,000 it had never seen. Accuracy 82%, precision 84%.
 
 ```
-accuracy 82.2%    precision 84.1%
+      site name length <= 17.5 ?
+  yes /                       \ no
+  length <= 13.5 ?          length <= 21.5 ?
+   /       \                 /        \
+ 14%       30%             55%        91%
 ```
 
-The first two questions:
+We chose the eight things to count. The model chose the cut-off numbers — we never wrote
+17.5 or 13.5.
+
+**3. The tree becomes JavaScript.** A scikit-learn model cannot run in a browser, so
+`train_export.py` walks the finished tree and prints it out as `if`/`else` lines. We pasted
+that code into `index.html`, so the page carries the model with it and needs no server.
+
+**4. The verdict.** 0.70 and above is DANGER, 0.40 and above is CAUTION, below that is SAFE.
+We picked those two numbers. Then every feature that fired becomes a sentence, so the user
+sees why.
+
+## How to run it
+
+**The app**
 
 ```
-             site name length <= 17.5 ?        24,000 links, 33% phishing
-       yes /                        \ no
-  length <= 13.5 ?                  length <= 21.5 ?
-  /        \                        /        \
-14%        30%                    55%        91%
+python -m http.server 8000
 ```
 
-We chose what to count. The model chose the numbers — we never picked 17.5 or 13.5.
+Open `http://localhost:8000`. The camera only works on https or localhost — that is a
+browser rule, which is why we host it on GitHub Pages. Without a camera you can still paste
+a link and press Check.
 
-**3. The tree becomes JavaScript.** A scikit-learn model cannot run in a browser and we did
-not want a server, so `train_export.py` walks the finished tree and prints it as `if`/`else`
-lines into `tree.js`:
+**Training** — put these three files in a `data/` folder first:
 
-```javascript
-function phishingRisk(f) {
-  if (f.length <= 17.5) {
-    if (f.length <= 13.5) {
-      if (f.words <= 2.5) {
-        ...
-        return 0.13;
+| Save as | Get it from |
+|---|---|
+| `data/phishing_urls.csv` | https://phishtank.org/ |
+| `data/benign_urls.csv` | https://github.com/ebubekirbbr/pdd/blob/master/input/Benign_list_big_final.csv |
+| `data/top10k_domains.txt` | https://github.com/zer0h/top-1000000-domains |
+
+then:
+
 ```
-
-That code sits inside `index.html`, so the page carries the model with it.
-
-**4. The verdict.** `0.70` and above is DANGER, `0.40` and above is CAUTION, below that is
-SAFE. We picked those two numbers. Shortened links (bit.ly, tinyurl) skip the tree and
-always get CAUTION, because the address shows nothing to judge. Then every feature that
-fired is turned into a sentence, so the user sees why.
+pip install pandas scikit-learn
+python train_export.py
+```
 
 ## What went wrong first
 
 Our first model scored 97.7%, but it called `https://www.naver.com` DANGER. The problem was
-our data: every normal link we had collected was a bare domain, so the tree learned "has a
-page path = phishing". After we fixed that it learned "http = phishing", because all our
-normal links were https. We fixed both, and the accuracy dropped to 82.2%.
+our data: every normal link we had collected was a bare domain, so the tree learned "a page
+path means phishing". After we fixed that it learned "http means phishing", because all our
+normal links were https. We fixed both, and the accuracy dropped to 82%.
 
 ## What it cannot do
 
