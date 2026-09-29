@@ -31,13 +31,13 @@
   }
   .wrap { max-width: 480px; margin: 0 auto; padding: 22px 16px 56px; }
 
-  /* 헤더 */
+  /* Header */
   header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
   .logo { width: 30px; height: 30px; flex: none; }
   h1 { font-size: 23px; margin: 0; letter-spacing: -0.4px; font-weight: 800; }
   .tag { color: var(--muted); font-size: 13.5px; margin: 0 0 18px 40px; }
 
-  /* 카메라 */
+  /* Camera */
   .camera {
     position: relative; width: 100%; aspect-ratio: 3 / 4; max-height: 52vh;
     background: #05070b; border-radius: 22px; overflow: hidden;
@@ -64,7 +64,7 @@
     font-size: 13px; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.9);
   }
 
-  /* 입력줄 */
+  /* Link input row */
   .row { display: flex; gap: 8px; margin-top: 14px; }
   input, button { font: inherit; border-radius: 13px; }
   input {
@@ -81,7 +81,7 @@
   .exLabel { color: var(--muted); font-size: 12.5px; margin: 16px 0 8px; }
   .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-  /* 결과 */
+  /* Result */
   #result { animation: rise .35s ease both; }
   @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
@@ -147,7 +147,6 @@
   ol.steps li { margin-bottom: 8px; }
   ol.steps b { color: var(--text); }
   #startBtn { width: 100%; padding: 15px; font-size: 16px; }
-  .note { color: var(--muted); font-size: 12.5px; text-align: center; margin: 12px 0 0; }
   footer { margin-top: 26px; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.7; }
   .hidden { display: none; }
 </style>
@@ -229,7 +228,7 @@
 
 <script src="jsQR.js"></script>
 <script>
-// ===== 1. 링크에서 숫자 8개 뽑기 (파이썬 코드와 똑같다) =====
+// ===== 1. Turn a link into 8 numbers (same rules as the Python code) =====
 var words = ["login", "verify", "account", "update", "secure", "bank", "pay", "signin", "confirm"];
 var badEndings = [".xyz", ".top", ".tk", ".club", ".online", ".site", ".icu", ".work", ".gq", ".cf"];
 
@@ -239,13 +238,13 @@ function getSite(link) {
   site = site.replace("http://", "");
   site = site.split("/")[0];
   if (site.indexOf("@") >= 0) {
-    site = site.split("@")[1];   // @가 있으면 뒤쪽이 진짜 사이트
+    site = site.split("@")[1];   // if there is an "@", the real site is the part after it
   }
   return site;
 }
 
 function isNumberAddress(site) {
-  // 점을 빼고 숫자만 남으면 IP 주소 (예: 192.0.2.44)
+  // if only digits are left after removing the dots, it is an IP address (e.g. 192.0.2.44)
   var onlyNumbers = site.split(".").join("");
   if (onlyNumbers.length === 0) { return 0; }
   for (var i = 0; i < onlyNumbers.length; i++) {
@@ -290,8 +289,10 @@ function getFeatures(link) {
   };
 }
 
-// ===== 2. 결정트리 (파이썬에서 학습한 것을 그대로 옮겼다) =====
-// 파이썬에서 학습한 결정트리를 그대로 옮긴 코드 (정확도 82.2%)
+// ===== 2. Decision tree =====
+// GENERATED CODE - do not edit by hand.
+// train_export.py trains the tree in Python and prints it out as these if/else lines.
+// Tree trained on 24,000 links. Accuracy 82.2% on 6,000 unseen links.
 function phishingRisk(f) {
   if (f.length <= 17.5) {
     if (f.length <= 13.5) {
@@ -416,7 +417,7 @@ function phishingRisk(f) {
   }
 }
 
-// ===== 3. 판정하기 =====
+// ===== 3. Make the judgement =====
 function judge(link) {
   if (link.indexOf("bit.ly") >= 0 || link.indexOf("tinyurl") >= 0) {
     return { level: "caution", risk: 0.5, reasons: ["Short link - the real site is hidden"], f: getFeatures(link) };
@@ -443,8 +444,8 @@ function judge(link) {
   return { level: level, risk: risk, reasons: reasons, f: f };
 }
 
-// ===== 4. 화면에 보여주기 =====
-// 표에 보여줄 8개 항목 [이름, 값]
+// ===== 4. Show the result on screen =====
+// the 8 rows of the table: [label, value]
 function featRows(f) {
   return [
     ["Number address (IP)", f.ip],
@@ -458,11 +459,6 @@ function featRows(f) {
   ];
 }
 
-function setText(id, text) {
-  // 화면의 어떤 자리에 글자를 넣는 도우미
-  document.getElementById(id).textContent = text;
-}
-
 function showResult(link) {
   var answer = judge(link);
 
@@ -470,13 +466,13 @@ function showResult(link) {
   document.getElementById("card").className = "card " + answer.level;
   document.getElementById("verdict").textContent = answer.level.toUpperCase();
 
-  // 신호등에 맞는 기호와 색
+  // traffic-light symbol and colour
   var marks = { safe: "\u2713", caution: "!", danger: "\u2715" };
   var colors = { safe: "#1f9d55", caution: "#e08b1a", danger: "#e0362c" };
   document.getElementById("mark").textContent = marks[answer.level];
   document.getElementById("riskBar").style.background = colors[answer.level];
 
-  // 위험할 때는 폰을 짧게 진동시킨다 (안드로이드에서 작동)
+  // buzz the phone briefly when the link is dangerous (works on Android)
   if (answer.level === "danger" && navigator.vibrate) { navigator.vibrate([90, 60, 90]); }
   document.getElementById("linkText").textContent = link;
 
@@ -489,7 +485,7 @@ function showResult(link) {
   }
 
   var percent = Math.round(answer.risk * 100);
-  setText("riskText", percent + "%");
+  document.getElementById("riskText").textContent = percent + "%";
   document.getElementById("riskBar").style.width = percent + "%";
 
   var rows = featRows(answer.f);
@@ -499,35 +495,35 @@ function showResult(link) {
     var name = rows[k][0];
     var value = rows[k][1];
     var tr = document.createElement("tr");
-    if (value > 0) { tr.className = "hit"; }    // 0이 아닌 값은 빨갛게 보여준다
+    if (value > 0) { tr.className = "hit"; }    // show values that are not 0 in red
     tr.innerHTML = "<td>" + name + "</td><td>" + value + "</td>";
     table.appendChild(tr);
   }
 
-  // 결과를 보여줄 때는 카메라 화면을 숨겨서 한 화면에 다 들어오게 한다
+  // hide the camera view so the whole result fits on one screen
   document.getElementById("scanView").classList.add("hidden");
   window.scrollTo({ top: 0 });
 }
 
-// ===== 5. 카메라로 QR 읽기 =====
+// ===== 5. Read a QR code with the camera =====
 var video = document.getElementById("video");
 var frame = document.getElementById("frame");
 var hint = document.getElementById("hint");
 var scanning = true;
 
 function startCamera() {
-  // 카메라를 켜달라고 부탁한다. 켜지는 데 시간이 걸려서 결과를 나중에 받는다
+  // ask for the camera. It takes a moment, so the answer arrives later
   var camera = navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-  camera.then(cameraReady).catch(cameraFailed);   // 켜지면 cameraReady, 실패하면 cameraFailed
+  camera.then(cameraReady).catch(cameraFailed);   // cameraReady if it opens, cameraFailed if it does not
 }
 
 function cameraReady(stream) {
   video.srcObject = stream;
   video.play();
   hint.textContent = "Point at a QR code";
-  frame.width = 480;            // 검사할 그림 크기 (한 번만 정해둔다)
+  frame.width = 480;            // size of the picture we check (set once)
   frame.height = 640;
-  setInterval(scanOnce, 300);   // 0.3초마다 한 번씩 화면을 확인한다
+  setInterval(scanOnce, 300);   // check the picture every 0.3 seconds
 }
 
 function cameraFailed() {
@@ -539,22 +535,22 @@ function scanOnce() {
   if (!scanning) { return; }
   if (video.videoWidth === 0) { return; }
 
-  // 지금 보이는 화면을 그림으로 저장한 뒤, 그 그림에서 QR을 찾는다
+  // save what the camera sees as a picture, then look for a QR code in it
   var pen = frame.getContext("2d");
   pen.drawImage(video, 0, 0, frame.width, frame.height);
   var picture = pen.getImageData(0, 0, frame.width, frame.height);
 
   var found = jsQR(picture.data, picture.width, picture.height);
   if (found) {
-    scanning = false;             // 같은 코드를 계속 읽지 않도록 멈춘다
+    scanning = false;             // stop so we do not read the same code again
     hint.textContent = "Found a QR code";
     showResult(found.data);
   }
 }
 
-// ===== 6. 버튼이 부르는 함수들 (버튼은 HTML에 onclick으로 연결해 두었다) =====
+// ===== 6. Functions the buttons call (wired with onclick in the HTML above) =====
 function useExample(link) {
-  // 예시 링크를 입력창에 넣어만 준다. 결과는 Check를 눌러야 나온다
+  // only put the example link into the input box. Press Check to see the result
   document.getElementById("linkInput").value = link;
 }
 
@@ -572,7 +568,7 @@ function scanAgain() {
 }
 
 function startScanning() {
-  // 홈 화면을 숨기고 카메라를 켠다 (아이폰은 버튼을 눌러야 카메라가 켜진다)
+  // hide the home screen and turn the camera on (iPhone needs a button press for this)
   document.getElementById("homeView").classList.add("hidden");
   document.getElementById("scanView").classList.remove("hidden");
   startCamera();
