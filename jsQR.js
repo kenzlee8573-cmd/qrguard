@@ -1,13 +1,3 @@
-/*!
- * jsQR - a QR code reading library.
- * THIS FILE IS NOT OUR CODE. It is an open-source library we use to read the
- * QR pattern out of a camera picture. We did not write or modify any of it.
- *
- * Source : https://github.com/cozmo/jsQR
- * Licence: Apache License 2.0
- *
- * Everything else in this project (index.html, train_export.py) is ours.
- */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();
