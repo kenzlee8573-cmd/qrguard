@@ -14,21 +14,16 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_score
 
-random.seed(0)          # same result every run
+random.seed(0)
 
 
 # 1. The data
 
-# phishing links, from PhishTank
 bad = list(pd.read_csv("data/phishing_urls.csv")["url"])[:10000]
 
-# normal links 1: the 10,000 most visited sites, plus a page path.
-# without the path the tree learns "page path = phishing", which is wrong.
 top = pd.read_csv("data/top10k_domains.txt", header=None)
 pages = ["", "/login", "/account/login", "/pay", "/search?q=hi", "/news", "/menu", "/about"]
 
-# 1 of these 10 is http, so about 10% of normal links are not https.
-# without that the tree learns "http = phishing", which is wrong.
 starts = ["https://www.", "https://", "https://www.", "https://", "http://www.",
           "https://", "https://www.", "https://", "https://", "https://"]
 
@@ -36,7 +31,6 @@ good = []
 for site in top[0]:
     good.append(random.choice(starts) + site + random.choice(pages))
 
-# normal links 2: 10,000 real links from a public safe list
 real = list(pd.read_csv("data/benign_urls.csv", header=None, names=["url"])["url"].dropna())
 random.shuffle(real)
 good = good + real[:10000]
@@ -133,9 +127,9 @@ t = model.tree_
 def emit(node, indent):
     pad = "  " * indent
 
-    if t.children_left[node] == -1:            # an end of the tree
+    if t.children_left[node] == -1:
         safe, phish = t.value[node][0]
-        p = phish / (safe + phish)             # share that were phishing
+        p = phish / (safe + phish)
         return pad + "return " + str(round(p, 2)) + ";\n"
 
     name = NAMES[t.feature[node]]
